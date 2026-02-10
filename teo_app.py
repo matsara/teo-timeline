@@ -4,19 +4,22 @@ import uuid
 from datetime import datetime
 
 # =========================================================
-# 1. CONFIGURAÇÃO DA PÁGINA - IDENTIDADE TEO
+# 1. CONFIGURAÇÃO DA PÁGINA
 # =========================================================
 st.set_page_config(page_title="TEO - Timeline de Escalonamento", layout="wide")
 
+# CSS para melhorar a estética e garantir que os botões ocupem o espaço
 st.markdown("""
     <style>
     [data-testid="stForm"] {border: none; padding: 0;}
     .stButton button {width: 100%;}
+    .stTabs [data-baseweb="tab-list"] {gap: 24px;}
+    .stTabs [data-baseweb="tab"] {height: 50px; white-space: pre-wrap;}
     </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# 2. FUNÇÕES DE EXPORTAÇÃO HTML (RELATÓRIO ESTILIZADO)
+# 2. FUNÇÕES DE SUPORTE
 # =========================================================
 def gerar_html_final(alertas_selecionados):
     html_rows = ""
@@ -92,9 +95,6 @@ def gerar_html_final(alertas_selecionados):
     </html>
     """
 
-# =========================================================
-# 3. MODAL DE VISUALIZAÇÃO (POP-UP)
-# =========================================================
 @st.dialog("Visualização da Timeline TEO", width="large")
 def modal_visualizacao(selecionados):
     html_content = gerar_html_final(selecionados)
@@ -114,13 +114,16 @@ def modal_visualizacao(selecionados):
             st.rerun()
 
 # =========================================================
-# 4. ESTADO GLOBAL E INTERFACE PRINCIPAL
+# 3. INICIALIZAÇÃO DO ESTADO (SESSION STATE)
 # =========================================================
 if "alertas" not in st.session_state:
     st.session_state.alertas = []
 if "alerta_em_edicao" not in st.session_state:
     st.session_state.alerta_em_edicao = None
 
+# =========================================================
+# 4. INTERFACE PRINCIPAL
+# =========================================================
 st.title("📊 TEO - Timeline de Escalonamento Organizado")
 
 tab_geral, tab_novo = st.tabs(["📋 Painel de Alertas", "🟠 Registrar Novo Alerta"])
@@ -128,19 +131,27 @@ tab_geral, tab_novo = st.tabs(["📋 Painel de Alertas", "🟠 Registrar Novo Al
 # --- TAB: CRIAR NOVO ALERTA ---
 with tab_novo:
     st.header("Novo Alerta")
-    with st.form("form_criar_alerta", clear_on_submit=True):
+    # KEY ÚNICA PARA O FORMULÁRIO DE CRIAÇÃO
+    with st.form(key="form_registro_alerta_principal", clear_on_submit=True):
         col1, col2 = st.columns(2)
-        ticket = col1.text_input("Número do Ticket")
-        evento = col2.text_input("Nome do Evento")
-        status = st.text_area("Status Atual")
+        ticket_input = col1.text_input("Número do Ticket")
+        evento_input = col2.text_input("Nome do Evento")
+        status_input = st.text_area("Status Atual / Descrição")
+        
         if st.form_submit_button("🚀 Criar Alerta"):
-            if ticket and evento:
-                st.session_state.alertas.append({
-                    "id": str(uuid.uuid4()), "ticket": ticket, "evento": evento, 
-                    "status": status, "acionamentos": []
-                })
-                st.success("Alerta criado com sucesso no TEO!")
+            if ticket_input and evento_input:
+                novo_alerta = {
+                    "id": str(uuid.uuid4()), 
+                    "ticket": ticket_input, 
+                    "evento": evento_input, 
+                    "status": status_input, 
+                    "acionamentos": []
+                }
+                st.session_state.alertas.append(novo_alerta)
+                st.success("Alerta criado com sucesso!")
                 st.rerun()
+            else:
+                st.error("Preencha Ticket e Evento para continuar.")
 
 # --- TAB: LISTAGEM E REPORT ---
 with tab_geral:
@@ -148,6 +159,7 @@ with tab_geral:
         st.info("Nenhum alerta ativo no sistema.")
     else:
         selecionados = []
+        # Cabeçalho da Tabela no Streamlit
         h_check, h1, h2, h3, h4 = st.columns([0.5, 2, 3, 4, 1.5])
         h_check.caption("SEL.")
         h1.caption("TICKET")
@@ -155,20 +167,24 @@ with tab_geral:
         h3.caption("STATUS")
         h4.caption("AÇÕES")
 
-        for alerta in list(st.session_state.alertas):
+        for alerta in st.session_state.alertas:
             with st.container(border=True):
                 col_check, col1, col2, col3, col4 = st.columns([0.5, 2, 3, 4, 1.5])
-                if col_check.checkbox("", key=f"check_{alerta['id']}"):
+                
+                # Checkbox para seleção no report
+                if col_check.checkbox("", key=f"sel_{alerta['id']}"):
                     selecionados.append(alerta)
+                
                 col1.markdown(f"**{alerta['ticket']}**")
                 col2.write(alerta["evento"])
                 col3.write(alerta["status"])
+                
                 with col4:
                     c_edit, c_del = st.columns(2)
-                    if c_edit.button("✏️", key=f"btn_edit_{alerta['id']}"):
+                    if c_edit.button("✏️", key=f"edit_{alerta['id']}"):
                         st.session_state.alerta_em_edicao = alerta["id"]
                         st.rerun()
-                    if c_del.button("🗑️", key=f"btn_del_{alerta['id']}"):
+                    if c_del.button("🗑️", key=f"del_{alerta['id']}"):
                         st.session_state.alertas.remove(alerta)
                         st.rerun()
 
@@ -176,6 +192,7 @@ with tab_geral:
             st.divider()
             st.subheader(f"📝 Report Consolidado ({len(selecionados)} itens)")
             
+            # Gerador de texto rápido para copiar/colar
             resumo_txt = "📢 TEO - RESUMO DE ALERTAS\n" + "="*30 + "\n\n"
             for s in selecionados:
                 resumo_txt += f"🎫 TICKET: {s['ticket']}\n🔥 EVENTO: {s['evento']}\n📌 STATUS: {s['status']}\n"
@@ -187,7 +204,7 @@ with tab_geral:
             
             st.code(resumo_txt, language="text")
 
-            if st.button("👁️ Visualizar e Gerar Timeline TEO", use_container_width=True):
+            if st.button("👁️ Visualizar e Gerar Timeline TEO (HTML)", use_container_width=True):
                 modal_visualizacao(selecionados)
 
 # =========================================================
@@ -195,48 +212,61 @@ with tab_geral:
 # =========================================================
 if st.session_state.alerta_em_edicao:
     st.divider()
+    # Busca o alerta atual pelo ID
     alerta_atual = next((a for a in st.session_state.alertas if a["id"] == st.session_state.alerta_em_edicao), None)
     
     if alerta_atual:
         st.header(f"⚙️ Gerenciar Ticket: {alerta_atual['ticket']}")
         col_ed_1, col_ed_2 = st.columns(2, gap="large")
 
+        # Coluna 1: Edição dos dados básicos
         with col_ed_1:
             st.subheader("Dados do Evento")
-            with st.form(key=f"form_ed_{alerta_atual['id']}"):
+            with st.form(key=f"form_ed_dados_{alerta_atual['id']}"):
                 alerta_atual["ticket"] = st.text_input("Ticket", alerta_atual["ticket"])
                 alerta_atual["evento"] = st.text_input("Evento", alerta_atual["evento"])
-                alerta_atual["status"] = st.text_area("Status", alerta_atual["status"])
-                if st.form_submit_button("Atualizar Alerta"):
-                    st.success("Dados salvos!")
+                alerta_atual["status"] = st.text_area("Status Atual", alerta_atual["status"])
+                if st.form_submit_button("Atualizar Informações"):
+                    st.success("Dados atualizados!")
                     st.rerun()
 
+        # Coluna 2: Inserção de novos acionamentos
         with col_ed_2:
-            st.subheader("Novo Escalonamento (Acionamento)")
-            with st.form(key=f"form_ac_{alerta_atual['id']}", clear_on_submit=True):
+            st.subheader("Novo Acionamento (Escalonamento)")
+            with st.form(key=f"form_novo_acionamento_{alerta_atual['id']}", clear_on_submit=True):
                 n = st.text_input("Nome Responsável")
                 t = st.text_input("Time / Área")
-                h_txt = st.text_input("Horário do Acionamento", value=datetime.now().strftime("%H:%M"))
+                h = st.text_input("Horário do Acionamento")
+
                 at = st.selectbox("Atendeu Chamado?", ["Sim", "Não", "-"])
+                
                 if st.form_submit_button("Adicionar à Timeline"):
                     if n and t:
                         alerta_atual["acionamentos"].append({
-                            "nome": n, "time": t, "horario": h_txt, "atendeu": at
+                            "nome": n, 
+                            "time": t, 
+                            "horario": h,
+                            "atendeu": at
                         })
                         st.rerun()
+                    else:
+                        st.warning("Preencha Nome e Time do responsável.")
 
+        # Exibição da Timeline do Ticket Específico
         if alerta_atual["acionamentos"]:
-            st.subheader("📋 Timeline do Escalonamento")
+            st.subheader("📋 Timeline Atual deste Ticket")
             for i, acion in enumerate(alerta_atual["acionamentos"]):
-                c1, c2, c3, c4, c5 = st.columns([2, 1.5, 1, 1, 0.5])
-                c1.write(f"👤 {acion['nome']}")
-                c2.write(f"👥 {acion['time']}")
-                c3.write(f"🕒 {acion['horario']}")
-                c4.write(f"📞 {acion['atendeu']}")
-                if c5.button("🗑️", key=f"del_acion_{alerta_atual['id']}_{i}"):
-                    alerta_atual["acionamentos"].pop(i)
-                    st.rerun()
+                with st.container(border=True):
+                    c1, c2, c3, c4, c5 = st.columns([2, 1.5, 1, 1, 0.5])
+                    c1.write(f"👤 {acion['nome']}")
+                    c2.write(f"👥 {acion['time']}")
+                    c3.write(f"🕒 {acion['horario']}")
+                    c4.write(f"📞 {acion['atendeu']}")
+                    if c5.button("🗑️", key=f"del_ac_{alerta_atual['id']}_{i}"):
+                        alerta_atual["acionamentos"].pop(i)
+                        st.rerun()
 
-        if st.button("⬅️ Sair do Gerenciamento"):
+        st.write("")
+        if st.button("⬅️ Sair da Edição", type="secondary"):
             st.session_state.alerta_em_edicao = None
             st.rerun()
