@@ -129,9 +129,7 @@ def gerar_resumo_texto(alertas_selecionados):
                 )
         else:
             resumo_txt += "  - Sem acionamentos\n"
-
-        resumo_txt += "--------------------\n\n"
-
+            
     return resumo_txt
 
 

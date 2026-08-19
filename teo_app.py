@@ -253,7 +253,12 @@ if st.session_state.alerta_em_edicao:
             with st.form(key=f"form_novo_acionamento_{alerta_atual['id']}", clear_on_submit=True):
                 nome = st.text_input("Analista acionado")
                 time = st.text_input("Time / Area")
-                horario_input = st.datetime_input("Data e hora do acionamento", value=datetime.now())
+                horario_input = st.datetime_input(
+                    "Data e hora do acionamento",
+                    value=datetime.now().replace(second=0, microsecond=0),
+                    format="DD/MM/YYYY",
+                    step=60,
+                )
                 status_acionamento = st.text_input(
                     "Status do acionamento",
                     placeholder="Ex: Acionado, em analise, aguardando retorno",
