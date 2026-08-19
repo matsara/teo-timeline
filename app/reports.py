@@ -159,21 +159,13 @@ def gerar_imagem_resumo_png(alertas_selecionados):
 
 
 def gerar_imagem_timeline_png(alertas_selecionados):
-    headers = [
-        "Ticket",
-        "Evento",
-        "Status Atual",
-        "Nome Completo",
-        "Time",
-        "Horario",
-        "Status Acionamento",
-        "Atendeu?",
-    ]
+    headers = ["Ticket", "Evento", "Status Atual"]
+    acion_headers = ["Nome Completo", "Time", "Horario", "Status Acionamento", "Atendeu?"]
     col_widths = [140, 420, 320, 200, 90, 200, 430, 120]
     row_h = 40
     margin = 16
 
-    rows = []
+    grupos = []
     for alerta in alertas_selecionados:
         acionamentos = alerta.get("acionamentos") or [
             {
@@ -184,26 +176,16 @@ def gerar_imagem_timeline_png(alertas_selecionados):
                 "atendeu": "-",
             }
         ]
-        for ac in acionamentos:
-            rows.append(
-                [
-                    alerta.get("ticket", "-"),
-                    alerta.get("evento", "-"),
-                    alerta.get("status_atual", "Sem acionamento"),
-                    ac.get("nome", "-"),
-                    ac.get("time", "-"),
-                    ac.get("horario", "-"),
-                    ac.get("status_acionamento", "-"),
-                    ac.get("atendeu", "-"),
-                ]
-            )
+        grupos.append((alerta, acionamentos))
 
     fonte = ImageFont.load_default()
     largura = margin * 2 + sum(col_widths)
     bloco_doc_h = 70
     titulo_h = 56
-    header_h = 42
-    altura_tabela = header_h + max(1, len(rows)) * row_h
+    header_h1 = 42
+    header_h2 = 42
+    total_linhas = sum(len(acionamentos) for _, acionamentos in grupos)
+    altura_tabela = header_h1 + header_h2 + max(1, total_linhas) * row_h
     altura = margin * 2 + bloco_doc_h + titulo_h + altura_tabela
 
     img = Image.new("RGB", (largura, altura), color=(18, 22, 33))
@@ -223,26 +205,72 @@ def gerar_imagem_timeline_png(alertas_selecionados):
     draw.rectangle((margin, y0, largura - margin, y0 + titulo_h), fill=(24, 39, 90), outline=(24, 39, 90))
     draw.text((largura // 2 - 100, y0 + 18), "Timeline de Acionamentos", fill=(255, 255, 255), font=fonte)
 
-    # Header
+    # Header principal (com agrupamento Acionamentos)
     y = y0 + titulo_h
     x = margin
     for i, h in enumerate(headers):
         w = col_widths[i]
-        draw.rectangle((x, y, x + w, y + header_h), fill=(255, 78, 28), outline=(0, 0, 0), width=1)
+        draw.rectangle((x, y, x + w, y + header_h1 + header_h2), fill=(255, 45, 12), outline=(0, 0, 0), width=1)
         draw.text((x + 8, y + 14), h, fill=(255, 255, 255), font=fonte)
         x += w
 
-    # Rows
-    y += header_h
-    for ridx, row in enumerate(rows):
+    # Header de Acionamentos
+    ac_start_x = margin + sum(col_widths[:3])
+    ac_total_w = sum(col_widths[3:])
+    draw.rectangle(
+        (ac_start_x, y, ac_start_x + ac_total_w, y + header_h1),
+        fill=(255, 45, 12),
+        outline=(0, 0, 0),
+        width=1,
+    )
+    draw.text((ac_start_x + ac_total_w // 2 - 45, y + 14), "Acionamentos", fill=(255, 255, 255), font=fonte)
+
+    x = ac_start_x
+    for i, h in enumerate(acion_headers):
+        w = col_widths[3 + i]
+        draw.rectangle((x, y + header_h1, x + w, y + header_h1 + header_h2), fill=(255, 45, 12), outline=(0, 0, 0), width=1)
+        draw.text((x + 8, y + header_h1 + 14), h, fill=(255, 255, 255), font=fonte)
+        x += w
+
+    # Linhas de dados com agrupamento por alerta (sem repetir ticket/evento/status)
+    y += header_h1 + header_h2
+    for gidx, (alerta, acionamentos) in enumerate(grupos):
+        grupo_h = len(acionamentos) * row_h
+        grupo_bg = (245, 245, 245) if gidx % 2 == 0 else (232, 232, 232)
+
+        # Colunas com efeito de rowspan
         x = margin
-        bg = (245, 245, 245) if ridx % 2 == 0 else (232, 232, 232)
-        for i, cell in enumerate(row):
+        valores = [
+            alerta.get("ticket", "-"),
+            alerta.get("evento", "-"),
+            alerta.get("status_atual", "Sem acionamento"),
+        ]
+        for i, valor in enumerate(valores):
             w = col_widths[i]
-            draw.rectangle((x, y, x + w, y + row_h), fill=bg, outline=(0, 0, 0), width=1)
-            draw.text((x + 8, y + 12), str(cell), fill=(20, 20, 20), font=fonte)
+            draw.rectangle((x, y, x + w, y + grupo_h), fill=grupo_bg, outline=(0, 0, 0), width=1)
+            draw.text((x + 8, y + grupo_h // 2 - 6), str(valor), fill=(20, 20, 20), font=fonte)
             x += w
-        y += row_h
+
+        # Colunas de acionamentos (linha a linha)
+        y_row = y
+        for ridx, ac in enumerate(acionamentos):
+            row_bg = grupo_bg if ridx % 2 == 0 else (224, 224, 224)
+            x_row = margin + sum(col_widths[:3])
+            dados = [
+                ac.get("nome", "-"),
+                ac.get("time", "-"),
+                ac.get("horario", "-"),
+                ac.get("status_acionamento", "-"),
+                ac.get("atendeu", "-"),
+            ]
+            for i, cell in enumerate(dados):
+                w = col_widths[3 + i]
+                draw.rectangle((x_row, y_row, x_row + w, y_row + row_h), fill=row_bg, outline=(0, 0, 0), width=1)
+                draw.text((x_row + 8, y_row + 12), str(cell), fill=(20, 20, 20), font=fonte)
+                x_row += w
+            y_row += row_h
+
+        y += grupo_h
 
     buffer = BytesIO()
     img.save(buffer, format="PNG")
