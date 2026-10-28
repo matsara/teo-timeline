@@ -1,28 +1,22 @@
 # 📊 TEO - Timeline de Escalonamento Organizado
 
-O **TEO** é uma solução inteligente baseada em Python para a gestão de incidentes e monitoramento de escalonamentos em tempo real. Desenvolvido para facilitar o trabalho de equipes de Operações e Suporte, o TEO centraliza registros de tickets e automatiza a criação de timelines de acionamento.
-
-
+O **TEO** e uma solucao baseada em Python para gestao de incidentes e monitoramento de escalonamentos em tempo real.
+Foi desenvolvido para apoiar equipes de Operacoes e Suporte, centralizando registros de tickets e organizando a timeline de acionamento.
 
 ## 🎯 Objetivo
-Transformar o caos de múltiplos acionamentos em uma linha do tempo clara, auditável e fácil de compartilhar, garantindo que o status de cada escalonamento esteja sempre visível.
+Transformar o caos de multiplos acionamentos em uma linha do tempo clara, auditavel e facil de compartilhar.
 
 ## 🚀 Funcionalidades Principais
+- **Painel de Alertas:** Gestao centralizada de tickets e eventos criticos.
+- **Escalonamento Detalhado:** Registro de acionamentos, horarios, status e atendimento.
+- **Visualizacao Dinamica:** Conferencia da timeline antes da exportacao.
+- **Exportacao de Report:** Geracao de arquivos para compartilhamento operacional.
 
-- **Painel de Alertas:** Gestão centralizada de Tickets e Eventos críticos.
-- **Escalonamento Detalhado:** Registro preciso de responsáveis, times, horários de acionamento e confirmação de atendimento.
-- **Visualização Dinâmica:** Pop-up interno para conferência rápida da timeline antes da exportação.
-- **Exportação Profissional:** Gerador de relatórios em HTML estilizado (tabelas listradas e organizadas) e resumo em texto para comunicadores (Slack/Teams).
+## 📚 Documentacao Tecnica
+As informacoes tecnicas foram centralizadas na pasta `docs/`:
 
-## 🛠️ Especificações Técnicas
-
-- **Frontend/Backend:** [Streamlit](https://streamlit.io/)
-- **Processamento:** Pandas
-- **Persistência Temporária:** Session State com identificadores UUID.
-- **Relatórios:** Motor de renderização HTML5/CSS3 customizado.
-
-## 📦 Instalação e Uso Local
-
-1. Clone o repositório:
-   ```bash
-   git clone [https://github.com/seu-usuario/teo-app.git](https://github.com/seu-usuario/teo-app.git)
+- [docs/README.md](docs/README.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/setup.md](docs/setup.md)
+- [docs/operations.md](docs/operations.md)
+- [docs/deployment.md](docs/deployment.md)
